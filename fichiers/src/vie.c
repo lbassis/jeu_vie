@@ -70,6 +70,45 @@ unsigned vie_compute_seq (unsigned nb_iter)
   return 0;
 }
 
+unsigned vie_compute_tuile (unsigned nb_iter)
+{
+
+  int tile_size = DIM/GRAIN;
+  unsigned change = 0;
+
+  for (unsigned it = 1; it <= nb_iter; it++) {
+    for (int i = 0; i < GRAIN; i++) {
+      for (int j = 0; j < GRAIN; j++) {
+	change[i+GRAIN*j] += traiter_tuile (i*tile_size, j*tile_size, (i+1)*tile_size-1, (j+1)*tile_size-1);
+      }
+    }
+    swap_images ();
+    
+    if (!change)
+      return it;
+  }
+
+  return 0;
+}
+
+
+
+void vie_init() {
+
+  // mallocs
+  printf("init!\n");
+}
+
+void vie_finalize() {
+
+  // frees
+}
+
+//void vie_refresh_img() {
+
+  // on peut creer notre propre tableau de bool pour faire le jeu et donc ici on fait cur_img(i,j) = tab[i][j] juste pour montrer que ca marche
+
+//}
 ///////////////////////////// Configuration initiale
 
 void draw_stable (void);
