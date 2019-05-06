@@ -8,6 +8,9 @@
 
 #include <stdbool.h>
 
+extern unsigned *cur_modified;
+extern unsigned *last_modified;
+
 static int compute_new_state (int y, int x)
 {
   unsigned n      = 0;
@@ -79,7 +82,7 @@ unsigned vie_compute_tuile (unsigned nb_iter)
   for (unsigned it = 1; it <= nb_iter; it++) {
     for (int i = 0; i < GRAIN; i++) {
       for (int j = 0; j < GRAIN; j++) {
-	change[i+GRAIN*j] += traiter_tuile (i*tile_size, j*tile_size, (i+1)*tile_size-1, (j+1)*tile_size-1);
+	change += traiter_tuile (i*tile_size, j*tile_size, (i+1)*tile_size-1, (j+1)*tile_size-1);
       }
     }
     swap_images ();
@@ -92,15 +95,105 @@ unsigned vie_compute_tuile (unsigned nb_iter)
 }
 
 
+void print_modified(int a) {
+  if (a == 0)
+    for (unsigned i = 0; i < GRAIN+2; i++) {
+      for (unsigned j = 0; j < GRAIN+2; j++) {
+	printf("%u ", last_modified[j+GRAIN*i]);
+      }
+      printf("\n");
+    }
+  else {
+   for (unsigned i = 0; i < GRAIN+2; i++) {
+      for (unsigned j = 0; j < GRAIN+2; j++) {
+	printf("%u ", cur_modified[j+GRAIN*i]);
+      }
+      printf("\n");
+    }
+  }
+}
+unsigned has_tile_changed(unsigned i, unsigned j) {
+  i++;
+  j++;
+  return last_modified[j+GRAIN*i];
+}
+
+void tile_changed(unsigned i, unsigned j, unsigned value) {
+  i++;
+  j++;
+  cur_modified[j+GRAIN*i] = value;
+}
+
+unsigned neighborhood_changed(unsigned x, unsigned y) {
+
+  unsigned n = 0;
+    
+  for (unsigned i = y-1; i <= y+1; i++) {
+    for (unsigned j = x-1; j <= x+1; j++) {
+      n += has_tile_changed(i, j);
+    }
+  }
+  //  return 1;
+  //printf("n = %u at %u %u\n", n, x, y);
+  return n;
+}
+
+unsigned vie_compute_tuile_opt (unsigned nb_iter)
+{
+
+  int tile_size = DIM/GRAIN;
+  unsigned change = 0;
+  unsigned value = 0;
+  
+  for (unsigned it = 1; it <= nb_iter; it++) {
+    for (unsigned i = 0; i < GRAIN; i++) {
+      for (unsigned j = 0; j < GRAIN; j++) {
+	if (neighborhood_changed(i, j) != 0) { // if the tile or its neighboors has changed
+	  value = traiter_tuile (i*tile_size, j*tile_size, (i+1)*tile_size-1, (j+1)*tile_size-1);
+	  change += value; // to see if it's already over or not
+	  tile_changed(i, j, value);
+	  }
+      }
+    }
+    
+    swap_images ();
+    print_modified(0);
+    printf("___________________________\n");
+    print_modified(1);
+    
+    for (unsigned i = 0; i < GRAIN+2; i++) {
+      for (unsigned j = 0; j < GRAIN+2; j++) {
+	last_modified[j+i*GRAIN] = cur_modified[j+i*GRAIN];
+      }
+    }
+    //memcpy(last_modified, cur_modified, (GRAIN+2)*(GRAIN+2)*sizeof(unsigned));
+    
+    if (!change)
+      return it;
+  }
+
+  return 0;
+}
+
 
 void vie_init() {
 
   // mallocs
-  printf("init!\n");
+  cur_modified = malloc((GRAIN+2)*(GRAIN+2)*sizeof(unsigned));
+  last_modified = malloc((GRAIN+2)*(GRAIN+2)*sizeof(unsigned));
+
+  for (unsigned i = 0; i < (GRAIN+2)*(GRAIN+2); i++) {
+    last_modified[i] = 1;
+    cur_modified[i] = 1; // in order to make the borders still 1 after the first memcpy
+  }
+  
+  //printf("init!\n");
 }
 
 void vie_finalize() {
 
+  free(cur_modified);
+  free(last_modified);
   // frees
 }
 

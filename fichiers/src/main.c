@@ -40,6 +40,14 @@ void_func_t the_finalize    = NULL;
 int_func_t the_compute      = NULL;
 void_func_t the_refresh_img = NULL;
 
+
+
+
+
+
+unsigned *cur_modified;
+unsigned *last_modified;
+
 unsigned get_nb_cores (void)
 {
   return nb_cores;
