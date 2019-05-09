@@ -96,45 +96,46 @@ unsigned vie_compute_tuile (unsigned nb_iter)
 
 
 void print_modified(int a) {
-  if (a == 0)
+  if (a == 0) {
+    printf("last_modified:\n");
     for (unsigned i = 0; i < GRAIN+2; i++) {
       for (unsigned j = 0; j < GRAIN+2; j++) {
-	printf("%u ", last_modified[j+GRAIN*i]);
+	printf("%u ", last_modified[j+(GRAIN+2)*i]);
       }
       printf("\n");
     }
+  }
   else {
-   for (unsigned i = 0; i < GRAIN+2; i++) {
+    printf("cur_modified:\n");
+    for (unsigned i = 0; i < GRAIN+2; i++) {
       for (unsigned j = 0; j < GRAIN+2; j++) {
-	printf("%u ", cur_modified[j+GRAIN*i]);
+	printf("%u ", cur_modified[j+(GRAIN+2)*i]);
       }
       printf("\n");
     }
   }
 }
-unsigned has_tile_changed(unsigned i, unsigned j) {
+unsigned has_tile_changed(int i, int j) {
   i++;
   j++;
-  return last_modified[j+GRAIN*i];
+  return last_modified[j+(GRAIN+2)*i];
 }
 
-void tile_changed(unsigned i, unsigned j, unsigned value) {
+void tile_changed(int i, int j, unsigned value) {
   i++;
   j++;
-  cur_modified[j+GRAIN*i] = value;
+  cur_modified[j+(GRAIN+2)*i] = value;
 }
 
-unsigned neighborhood_changed(unsigned x, unsigned y) {
+unsigned neighborhood_changed(int x, int y) {
 
   unsigned n = 0;
-    
-  for (unsigned i = y-1; i <= y+1; i++) {
-    for (unsigned j = x-1; j <= x+1; j++) {
+
+  for (int i = y-1; i <= y+1; i++) {
+    for (int j = x-1; j <= x+1; j++) {
       n += has_tile_changed(i, j);
     }
   }
-  //  return 1;
-  //printf("n = %u at %u %u\n", n, x, y);
   return n;
 }
 
@@ -144,11 +145,14 @@ unsigned vie_compute_tuile_opt (unsigned nb_iter)
   int tile_size = DIM/GRAIN;
   unsigned change = 0;
   unsigned value = 0;
+
+  print_modified(1);
+  printf("______\n");
   
   for (unsigned it = 1; it <= nb_iter; it++) {
     for (unsigned i = 0; i < GRAIN; i++) {
       for (unsigned j = 0; j < GRAIN; j++) {
-	if (neighborhood_changed(i, j) != 0) { // if the tile or its neighboors has changed
+	if (neighborhood_changed((int)i, (int)j) != 0) { // if the tile or its neighboors has changed
 	  value = traiter_tuile (i*tile_size, j*tile_size, (i+1)*tile_size-1, (j+1)*tile_size-1);
 	  change += value; // to see if it's already over or not
 	  tile_changed(i, j, value);
@@ -157,16 +161,11 @@ unsigned vie_compute_tuile_opt (unsigned nb_iter)
     }
     
     swap_images ();
-    print_modified(0);
+    print_modified(1);
     printf("___________________________\n");
     print_modified(1);
     
-    for (unsigned i = 0; i < GRAIN+2; i++) {
-      for (unsigned j = 0; j < GRAIN+2; j++) {
-	last_modified[j+i*GRAIN] = cur_modified[j+i*GRAIN];
-      }
-    }
-    //memcpy(last_modified, cur_modified, (GRAIN+2)*(GRAIN+2)*sizeof(unsigned));
+    memcpy(last_modified, cur_modified, (GRAIN+2)*(GRAIN+2)*sizeof(unsigned));
     
     if (!change)
       return it;
