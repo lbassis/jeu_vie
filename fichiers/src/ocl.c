@@ -26,7 +26,7 @@ cl_context context;
 cl_kernel update_kernel;
 cl_kernel compute_kernel;
 cl_command_queue queue;
-cl_mem tex_buffer, cur_buffer, next_buffer;
+cl_mem tex_buffer, cur_buffer, next_buffer, changed_in_buffer, changed_out_buffer;
 
 static size_t file_size (const char *filename)
 {
@@ -282,6 +282,16 @@ void ocl_init (void)
   if (!next_buffer)
     exit_with_error ("Failed to allocate output buffer");
 
+  changed_in_buffer = clCreateBuffer (context, CL_MEM_READ_WRITE,
+				      sizeof (unsigned) * TILEX * TILEY, NULL, NULL);
+  if (!changed_in_buffer)
+    exit_with_error ("Failed to allocate input buffer");
+
+  changed_out_buffer = clCreateBuffer (context, CL_MEM_READ_WRITE,
+  				       sizeof (unsigned) * (GRAIN*2) * (GRAIN*2), NULL, NULL);
+  if (!changed_out_buffer)
+    exit_with_error ("Failed to allocate input buffer");
+
   printf ("Using %dx%d workitems grouped in %dx%d tiles \n", SIZE, SIZE, TILEX,
           TILEY);
 }
@@ -311,6 +321,33 @@ void ocl_send_image (unsigned *image)
   check (err, "Failed to write to next_buffer");
 
   PRINT_DEBUG ('o', "Initial image sent to device.\n");
+
+  ocl_send_changed();
+}
+
+void ocl_send_changed () {
+
+  unsigned *in = malloc(sizeof(unsigned)*(GRAIN+2)*(GRAIN+2));
+  unsigned *out = malloc(sizeof(unsigned)*(GRAIN+2)*(GRAIN+2));
+
+  for (unsigned i = 0; i < GRAIN+2; i++) {
+    for (unsigned j = 0; j < GRAIN+2; j++) {
+      in[i*(GRAIN+2)+j] = 0xFFFF00FF;
+      out[i*(GRAIN+2)+j] = 0xFFFF00FF;
+    }
+  }
+  
+  err = clEnqueueWriteBuffer (queue, changed_in_buffer, CL_TRUE, 0,
+                              sizeof (unsigned) * (GRAIN+2) * (GRAIN+2), in, 0, NULL,
+                              NULL);
+  check (err, "Failed to write to changed_in_buffer");
+
+  err = clEnqueueWriteBuffer (queue, changed_out_buffer, CL_TRUE, 0,
+                              sizeof (unsigned) * (GRAIN+2) * (GRAIN+2), out, 0, NULL,
+                              NULL);
+  check (err, "Failed to write to changed_out_buffer");
+
+  PRINT_DEBUG ('o', "Initial changes matrix sent to device.\n");
 }
 
 void ocl_retrieve_image (unsigned *image)
@@ -335,6 +372,8 @@ unsigned ocl_compute (unsigned nb_iter)
     err = 0;
     err |= clSetKernelArg (compute_kernel, 0, sizeof (cl_mem), &cur_buffer);
     err |= clSetKernelArg (compute_kernel, 1, sizeof (cl_mem), &next_buffer);
+    err |= clSetKernelArg (compute_kernel, 2, sizeof (cl_mem), &changed_in_buffer);
+    err |= clSetKernelArg (compute_kernel, 3, sizeof (cl_mem), &changed_out_buffer);
     check (err, "Failed to set kernel arguments");
 
     err = clEnqueueNDRangeKernel (queue, compute_kernel, 2, NULL, global, local,
