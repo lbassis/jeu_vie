@@ -5,7 +5,7 @@
 #include "graphics.h"
 #include "ocl.h"
 #include "scheduler.h"
-
+#include "string.h"
 #include <stdbool.h>
 
 extern unsigned *cur_modified;
@@ -19,11 +19,10 @@ static int compute_new_state (int y, int x)
   if (x > 0 && x < DIM - 1 && y > 0 && y < DIM - 1) {
     for (int i = y - 1; i <= y + 1; i++)
       for (int j = x - 1; j <= x + 1; j++)
-        if (i != y || j != x)
           n += (cur_img (i, j) != 0);
 
     if (cur_img (y, x) != 0) {
-      if (n == 2 || n == 3)
+      if (n == 3 || n == 4)
         n = 0xFFFF00FF;
       else {
         n      = 0;
@@ -115,6 +114,8 @@ void print_modified(int a) {
     }
   }
 }
+
+
 unsigned has_tile_changed(int i, int j) {
   i++;
   j++;
@@ -145,9 +146,6 @@ unsigned vie_compute_tuile_opt (unsigned nb_iter)
   int tile_size = DIM/GRAIN;
   unsigned change = 0;
   unsigned value = 0;
-
-  print_modified(1);
-  printf("______\n");
   
   for (unsigned it = 1; it <= nb_iter; it++) {
     for (unsigned i = 0; i < GRAIN; i++) {
@@ -161,19 +159,18 @@ unsigned vie_compute_tuile_opt (unsigned nb_iter)
     }
     
     swap_images ();
-    print_modified(1);
-    printf("___________________________\n");
-    print_modified(1);
     
     memcpy(last_modified, cur_modified, (GRAIN+2)*(GRAIN+2)*sizeof(unsigned));
-    
+    for (unsigned i = 0; i < (GRAIN+2)*(GRAIN+2); i++) {
+      cur_modified[i] = 0; // in order to make the borders still 1 after the first memcp
+    }
+
     if (!change)
       return it;
   }
 
   return 0;
 }
-
 
 void vie_init() {
 
