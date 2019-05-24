@@ -26,7 +26,7 @@ cl_context context;
 cl_kernel update_kernel;
 cl_kernel compute_kernel;
 cl_command_queue queue;
-cl_mem tex_buffer, cur_buffer, next_buffer, changed_in_buffer, changed_out_buffer;
+cl_mem tex_buffer, cur_buffer, next_buffer, cur_changed, next_changed, grain_buffer;
 
 static size_t file_size (const char *filename)
 {
@@ -282,15 +282,20 @@ void ocl_init (void)
   if (!next_buffer)
     exit_with_error ("Failed to allocate output buffer");
 
-  changed_in_buffer = clCreateBuffer (context, CL_MEM_READ_WRITE,
-				      sizeof (unsigned) * TILEX * TILEY, NULL, NULL);
-  if (!changed_in_buffer)
+  cur_changed = clCreateBuffer (context, CL_MEM_READ_WRITE,
+				      sizeof (unsigned) * (GRAIN+2) * (GRAIN+2), NULL, NULL);
+  if (!cur_changed)
     exit_with_error ("Failed to allocate input buffer");
 
-  changed_out_buffer = clCreateBuffer (context, CL_MEM_READ_WRITE,
-  				       sizeof (unsigned) * (GRAIN*2) * (GRAIN*2), NULL, NULL);
-  if (!changed_out_buffer)
+  next_changed = clCreateBuffer (context, CL_MEM_READ_WRITE,
+  				       sizeof (unsigned) * (GRAIN+2) * (GRAIN+2), NULL, NULL);
+  if (!next_changed)
     exit_with_error ("Failed to allocate input buffer");
+
+  grain_buffer = clCreateBuffer (context, CL_MEM_READ_WRITE,
+				      sizeof (unsigned), NULL, NULL);
+  if (!grain_buffer)
+    exit_with_error ("Failed to allocate grain buffer");
 
   printf ("Using %dx%d workitems grouped in %dx%d tiles \n", SIZE, SIZE, TILEX,
           TILEY);
@@ -329,24 +334,33 @@ void ocl_send_changed () {
 
   unsigned *in = malloc(sizeof(unsigned)*(GRAIN+2)*(GRAIN+2));
   unsigned *out = malloc(sizeof(unsigned)*(GRAIN+2)*(GRAIN+2));
-
+  //unsigned *g = malloc(sizeof(unsigned));
+  //*g = GRAIN;
+  unsigned g = GRAIN;
+  
   for (unsigned i = 0; i < GRAIN+2; i++) {
     for (unsigned j = 0; j < GRAIN+2; j++) {
-      in[i*(GRAIN+2)+j] = 0xFFFF00FF;
-      out[i*(GRAIN+2)+j] = 0xFFFF00FF;
+      in[i*(GRAIN+2)+j] = 1;
+      out[i*(GRAIN+2)+j] = 1;
     }
   }
-  
-  err = clEnqueueWriteBuffer (queue, changed_in_buffer, CL_TRUE, 0,
+
+  err = clEnqueueWriteBuffer (queue, cur_changed, CL_TRUE, 0,
                               sizeof (unsigned) * (GRAIN+2) * (GRAIN+2), in, 0, NULL,
                               NULL);
-  check (err, "Failed to write to changed_in_buffer");
+  check (err, "Failed to write to cur_changed");
 
-  err = clEnqueueWriteBuffer (queue, changed_out_buffer, CL_TRUE, 0,
+  err = clEnqueueWriteBuffer (queue, next_changed, CL_TRUE, 0,
                               sizeof (unsigned) * (GRAIN+2) * (GRAIN+2), out, 0, NULL,
                               NULL);
-  check (err, "Failed to write to changed_out_buffer");
+  check (err, "Failed to write to next_changed");
 
+  
+  err = clEnqueueWriteBuffer (queue, grain_buffer, CL_TRUE, 0,
+                              sizeof (unsigned), &g, 0, NULL,
+                              NULL);
+  check (err, "Failed to write to grain_buffer");
+  
   PRINT_DEBUG ('o', "Initial changes matrix sent to device.\n");
 }
 
@@ -365,6 +379,18 @@ unsigned ocl_compute (unsigned nb_iter)
   size_t global[2] = {SIZE, SIZE};   // global domain size for our calculation
   size_t local[2]  = {TILEX, TILEY}; // local domain size for our calculation
 
+  cl_mem zero;
+  unsigned *zeros = calloc((GRAIN+2) * (GRAIN+2), sizeof(unsigned));
+  zero = clCreateBuffer (context, CL_MEM_READ_WRITE,
+			 sizeof (unsigned) * (GRAIN+2) * (GRAIN+2), NULL, NULL);
+  if (!zero)
+    exit_with_error ("Failed to allocate output buffer");
+
+  err =
+    clEnqueueReadBuffer (queue, zero, CL_TRUE, 0,
+			 sizeof (unsigned) * (GRAIN+2) * (GRAIN+2), zeros, 0, NULL, NULL);
+  check (err, "Failed to read from zeros_buffer");
+  
   for (unsigned it = 1; it <= nb_iter; it++) {
 
     // Set kernel arguments
@@ -372,8 +398,9 @@ unsigned ocl_compute (unsigned nb_iter)
     err = 0;
     err |= clSetKernelArg (compute_kernel, 0, sizeof (cl_mem), &cur_buffer);
     err |= clSetKernelArg (compute_kernel, 1, sizeof (cl_mem), &next_buffer);
-    err |= clSetKernelArg (compute_kernel, 2, sizeof (cl_mem), &changed_in_buffer);
-    err |= clSetKernelArg (compute_kernel, 3, sizeof (cl_mem), &changed_out_buffer);
+    err |= clSetKernelArg (compute_kernel, 2, sizeof (cl_mem), &cur_changed);
+    err |= clSetKernelArg (compute_kernel, 3, sizeof (cl_mem), &next_changed);
+    err |= clSetKernelArg (compute_kernel, 4, sizeof (cl_mem), &grain_buffer);
     check (err, "Failed to set kernel arguments");
 
     err = clEnqueueNDRangeKernel (queue, compute_kernel, 2, NULL, global, local,
@@ -385,6 +412,9 @@ unsigned ocl_compute (unsigned nb_iter)
       cl_mem tmp  = cur_buffer;
       cur_buffer  = next_buffer;
       next_buffer = tmp;
+
+      cur_changed = next_changed;
+      next_changed = zero;      
     }
   }
 
