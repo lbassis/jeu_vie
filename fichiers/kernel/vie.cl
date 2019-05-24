@@ -1,5 +1,9 @@
 #include "kernel/common.cl"
 
+static unsigned not_border(int x, int y) {
+  return x > 0 && x < DIM - 1 && y > 0 && y < DIM - 1;
+}
+
 __kernel void vie_global (__global unsigned *in, __global unsigned *out)
 {
   int x = get_global_id (0); 
@@ -7,7 +11,7 @@ __kernel void vie_global (__global unsigned *in, __global unsigned *out)
 
   unsigned color, neighboors = 0;
   
-  if (x > 0 && x < DIM - 1 && y > 0 && y < DIM - 1) {
+  if (not_border(x, y)) {
     for (int i = y - 1; i <= y + 1; i++) {
       for (int j = x - 1; j <= x + 1; j++) {
 	if (in[i*DIM+j] != 0)
@@ -61,7 +65,7 @@ __kernel void vie_semi_local (__global unsigned *in, __global unsigned *out)
   }
 
   else {
-    if (x > 0 && x < DIM - 1 && y > 0 && y < DIM - 1) { // si on n'est pas sur les bords, il faut regarder dehors
+    if (not_border(x, y)) { // si on n'est pas sur les bords, il faut regarder dehors
       for (int i = y - 1; i <= y + 1; i++) {
   	for (int j = x - 1; j <= x + 1; j++) {
   	    if (in[i*DIM+j] != 0)
@@ -108,7 +112,7 @@ __kernel void vie_local (__global unsigned *in, __global unsigned *out, __global
   unsigned color;
 
   tile [x_loc+1][y_loc+1] = in[y*DIM+x];
-  if (x > 0 && x < DIM - 1 && y > 0 && y < DIM - 1) { //si on est sur la borde, on peut prendre tous les voisines
+  if (not_border(x, y)) { //si on n'est pas sur la borde, on peut prendre tous les voisines
     tile[x_loc][y_loc] = in[(y-1)*DIM+(x-1)];
     tile[x_loc][y_loc+1] = in[y*DIM+(x-1)];
     tile[x_loc][y_loc+2] = in[(y+1)*DIM+(x-1)];
@@ -123,7 +127,7 @@ __kernel void vie_local (__global unsigned *in, __global unsigned *out, __global
 
   barrier(CLK_LOCAL_MEM_FENCE);
 
-  if (x > 0 && x < DIM - 1 && y > 0 && y < DIM - 1) { // si on n'est pas sur les bords, on prend tous les voisines
+  if (not_border(x, y)) {
     for (int i = y_loc; i <= y_loc + 2; i++) {
       for (int j = x_loc; j <= x_loc + 2; j++) {
 	if (tile[j][i] != 0)
@@ -194,7 +198,7 @@ __kernel void vie (__global unsigned *in, __global unsigned *out, __global unsig
 
   unsigned color, neighboors = 0;
 
-  if (neighborhood_changed(g, x_loc, y_loc, changed_in) && x > 0 && x < DIM - 1 && y > 0 && y < DIM - 1) {
+  if (neighborhood_changed(g, x_loc, y_loc, changed_in) && not_border(x, y)) {
     for (int i = y - 1; i <= y + 1; i++) {
       for (int j = x - 1; j <= x + 1; j++) {
 	if (in[i*DIM+j] != 0)
@@ -209,7 +213,6 @@ __kernel void vie (__global unsigned *in, __global unsigned *out, __global unsig
       }
       else {
 	color = 0xFFFF00FF;
-	//tile_changed(g, x_loc, y_loc, 0, changed_out);
       }
     }
     else {
@@ -219,13 +222,11 @@ __kernel void vie (__global unsigned *in, __global unsigned *out, __global unsig
       }
       else {
 	color = 0;
-	//tile_changed(g, x_loc, y_loc, 0, changed_out);
       }
     }
     out[y*DIM+x] = color;
   }
   else {
     out[y*DIM+x] = in[y*DIM+x];
-    //tile_changed(g, x_loc, y_loc, 0, changed_out);
   }
 }
