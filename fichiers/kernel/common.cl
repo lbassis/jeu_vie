@@ -57,3 +57,34 @@ __kernel void update_texture (__global unsigned *cur, __write_only image2d_t tex
 #endif
   write_imagef (tex, pos, color_scatter (c));
 }
+
+static unsigned not_border(int x, int y) {
+  return x > 0 && x < DIM - 1 && y > 0 && y < DIM - 1;
+}
+
+static unsigned has_tile_changed(unsigned g, int i, int j, __global unsigned *current) {
+  i++;
+  j++;
+  return current[i+(g+2)*j];
+}
+
+static void tile_changed(unsigned g, int i, int j, unsigned value, __global unsigned *previous) {
+  i++;
+  j++;
+  previous[i+(g+2)*j] = value;
+}
+
+static int neighborhood_changed(unsigned g, int x, int y, __global unsigned *previous) {
+
+  int n = 0;
+
+  for (int i = y-1; i <= y+1; i++) {
+    for (int j = x-1; j <= x+1; j++) {
+      n += has_tile_changed(g, j, i, previous);
+    }
+  }
+  return n;
+}
+
+
+
