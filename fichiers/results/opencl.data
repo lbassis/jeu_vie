@@ -1,0 +1,82 @@
+iteration;version;conf;grain;temps;
+1;512;guns;16;Error: Failed to build program!
+1;512;guns;32;Error: Failed to build program!
+1;512;random;16;Error: Failed to build program!
+1;512;random;32;Error: Failed to build program!
+1;4096;guns;16;Error: Failed to build program!
+1;4096;guns;32;Error: Failed to build program!
+1;4096;random;16;Error: Failed to build program!
+1;4096;random;32;Error: Failed to build program!
+2;512;guns;16;Error: Failed to build program!
+2;512;guns;32;Error: Failed to build program!
+2;512;random;16;Error: Failed to build program!
+2;512;random;32;Error: Failed to build program!
+2;4096;guns;16;Error: Failed to build program!
+2;4096;guns;32;Error: Failed to build program!
+2;4096;random;16;Error: Failed to build program!
+2;4096;random;32;Error: Failed to build program!
+3;512;guns;16;Error: Failed to build program!
+3;512;guns;32;Error: Failed to build program!
+3;512;random;16;Error: Failed to build program!
+3;512;random;32;Error: Failed to build program!
+3;4096;guns;16;Error: Failed to build program!
+3;4096;guns;32;Error: Failed to build program!
+3;4096;random;16;Error: Failed to build program!
+3;4096;random;32;Error: Failed to build program!
+4;512;guns;16;Error: Failed to build program!
+4;512;guns;32;Error: Failed to build program!
+4;512;random;16;Error: Failed to build program!
+4;512;random;32;Error: Failed to build program!
+4;4096;guns;16;Error: Failed to build program!
+4;4096;guns;32;Error: Failed to build program!
+4;4096;random;16;Error: Failed to build program!
+4;4096;random;32;Error: Failed to build program!
+5;512;guns;16;Error: Failed to build program!
+5;512;guns;32;Error: Failed to build program!
+5;512;random;16;Error: Failed to build program!
+5;512;random;32;Error: Failed to build program!
+5;4096;guns;16;Error: Failed to build program!
+5;4096;guns;32;Error: Failed to build program!
+5;4096;random;16;Error: Failed to build program!
+5;4096;random;32;Error: Failed to build program!
+iteration;version;conf;grain;temps;
+1;512;guns;16;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+1;512;guns;32;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+1;512;random;16;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+1;512;random;32;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+1;4096;guns;16;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+1;4096;guns;32;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+1;4096;random;16;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+1;4096;random;32;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+2;512;guns;16;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+2;512;guns;32;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+2;512;random;16;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+2;512;random;32;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+2;4096;guns;16;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+2;4096;guns;32;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+2;4096;random;16;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+2;4096;random;32;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+3;512;guns;16;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+3;512;guns;32;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+3;512;random;16;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+3;512;random;32;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+3;4096;guns;16;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+3;4096;guns;32;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+3;4096;random;16;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+3;4096;random;32;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+4;512;guns;16;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+4;512;guns;32;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+4;512;random;16;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+4;512;random;32;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+4;4096;guns;16;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+4;4096;guns;32;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+4;4096;random;16;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+4;4096;random;32;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+5;512;guns;16;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+5;512;guns;32;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+5;512;random;16;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+5;512;random;32;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+5;4096;guns;16;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+5;4096;guns;32;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+5;4096;random;16;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
+5;4096;random;32;script/opencl_expe.sh: ligne 16: PLATFORM=1 : commande introuvable
