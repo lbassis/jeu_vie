@@ -193,6 +193,266 @@ void vie_finalize() {
   // frees
 }
 
+/* Change l'état d'une tuile.
+   Le nombre de saut conditionnel a été réduit. */
+static int compute_new_state_opti (int y, int x)
+{
+  unsigned n      = 0;
+  unsigned tmp = cur_img(y, x);
+
+  if (x > 0 && x < DIM - 1 && y > 0 && y < DIM - 1) {
+    for (int i = y - 1; i <= y + 1; i++)
+      for (int j = x - 1; j <= x + 1; j++)
+	  n += (!!cur_img (i, j));
+
+    n = (((n == 3) | ((tmp != 0)  & (n == 4)))) * 0xFFFF00FF; next_img (y, x) = n;
+
+    return n - tmp;
+   }
+  
+  return 0;
+}
+
+/* Traite la tuile en appelant la fonction optimisé pour mettre à jour une cellule */
+static int traiter_tuile_opti (int i_d, int j_d, int i_f, int j_f)
+{
+  unsigned change = 0;
+
+  PRINT_DEBUG ('c', "tuile [%d-%d][%d-%d] traitée\n", i_d, i_f, j_d, j_f);
+
+  for (int i = i_d; i <= i_f; i++)
+    for (int j = j_d; j <= j_f; j++)
+      change |= compute_new_state_opti (i, j);
+
+  return change;
+}
+
+/* Version non parallélisé mais optimisé sur le calcul de tuile */
+unsigned vie_compute_seq_opti (unsigned nb_iter)
+{
+  for (unsigned it = 1; it <= nb_iter; it++) {
+
+    // On traite toute l'image en un coup (oui, c'est une grosse tuile)
+    unsigned change = traiter_tuile_opti (0, 0, DIM - 1, DIM - 1);
+
+    swap_images ();
+
+    if (!change)
+      return it;
+  }
+
+  return 0;
+}
+
+/* Version omp for basique */
+unsigned vie_compute_ompfor (unsigned nb_iter)
+{
+  for (unsigned it = 1; it <= nb_iter; it++) {
+#pragma omp parallel for schedule(static) collapse(2)
+    for(int i = 0; i < DIM ; ++i)
+      for (int j = 0; j < DIM ; ++j) {
+	compute_new_state_opti (i,  j);
+      }
+    
+    swap_images ();
+  }
+
+  return 0;
+}
+
+/* Même chose que compute_new_state_opti */
+static int compute_new_state_omp (int y, int x)
+{
+  unsigned n      = 0;
+  unsigned tmp = cur_img(y, x);
+
+  if (x > 0 && x < DIM - 1 && y > 0 && y < DIM - 1) {
+    for (int i = y - 1; i <= y + 1; i++)
+      for (int j = x - 1; j <= x + 1; j++)
+	  n += (!!cur_img (i, j));
+
+    n = (((n == 3) | ((tmp != 0)  & (n == 4)))) * 0xFFFF00FF; next_img (y, x) = n;
+
+    return n - tmp;
+   }
+  
+  return 0;
+}
+
+/* Change toutes les cellules d'une tuile */
+static int traiter_tuile_omp (int i_d, int j_d, int i_f, int j_f)
+{
+  unsigned change = 0;
+
+  PRINT_DEBUG ('c', "tuile [%d-%d][%d-%d] traitée\n", i_d, i_f, j_d, j_f);
+  for(int i = i_d; i < i_f; i++)
+    for (int j = j_d; j < j_f; ++j) {
+      change |= compute_new_state (i,  j);
+    }
+    
+  return change;
+}
+
+/* Version omp for tuilée basique */
+unsigned vie_compute_omptiled (unsigned nb_iter)
+{
+  int nbit = DIM / GRAIN;
+  
+  for (unsigned it = 1; it <= nb_iter; it++) {
+    
+#pragma omp parallel for collapse(2) schedule(dynamic)
+    for (unsigned i = 0; i < nbit; ++i) {
+      for (int j = 0 ; j < nbit; ++j) {
+        traiter_tuile_omp (GRAIN * i, GRAIN * j, GRAIN * (i +1), GRAIN * (j + 1) );
+      }
+    }
+    swap_images ();
+  }
+
+  return 0;
+}
+
+/* Routine mettant à jour le tableau 'would'.
+   Ce tableau indique si une tuile est a traité
+   ou reste immobile. */
+static
+int update_change(int *changes, int *would) {
+  int changed = 0;
+  int nbit = DIM / GRAIN;
+
+  for (int i = 0; i < nbit; ++i)
+    for(int j = 0; j < nbit; ++j) {
+      would[i * nbit + j] = 0;
+      for (int row = i - 1; row < i + 1; ++row){
+	for (int col = j - 1; col < j + 1; ++col)
+	  if (row >= 0 && row < nbit && col >= 0 && col < nbit) {
+	    would[i * nbit + j] |= changes[row * nbit + col];
+	  }
+      }
+      if( !changed && changes[i * nbit + j])
+	changed = 1;
+    }
+  memset(changes, 0, sizeof(int) * nbit * nbit);
+  return changed;
+}
+
+/* Version omp tuilé optimisé (i.e. qui prend en compte les tuiles qui ne sont pas a traité
+   si elle ou leur voisine n'a pas été modifié à l'étape précédente) */
+unsigned vie_compute_ompopti (unsigned nb_iter)
+{
+  int changes[DIM * DIM / (GRAIN * GRAIN)];
+  int would_change[DIM * DIM / (GRAIN * GRAIN)];
+  int nbit = DIM / GRAIN;
+
+  memset(changes, 0, sizeof(int) * nbit * nbit);
+  memset(would_change, 1, sizeof(int) * nbit * nbit);
+  
+  for (unsigned it = 1; it <= nb_iter; it++) {
+    
+#pragma omp parallel for collapse(2) schedule(dynamic)
+    for (unsigned i = 0; i < nbit; ++i) {
+      for (int j = 0 ; j < nbit; ++j) {
+	if (would_change[i * nbit + j])
+	  changes[i * nbit + j] |= traiter_tuile_omp (GRAIN * i, GRAIN * j, GRAIN * (i +1), GRAIN * (j + 1) );
+      }
+    }
+    swap_images ();
+    update_change(changes, would_change);
+  }
+
+  return 0;
+}
+
+/* Version omp task sans prendre en compte les tuiles imobiles (i.e. qui ne devrai pas évoluer
+   entre deux itérations */
+unsigned vie_compute_omptask(unsigned nb_iter) {
+  int nbit = DIM / GRAIN;
+  
+  for (unsigned it = 1; it <= nb_iter; it++) {
+#pragma omp parallel
+    {
+#pragma omp for schedule(static) collapse(2)
+	for (unsigned i = 0; i < nbit; ++i) {
+	  for (int j = 0 ; j < nbit; ++j) {
+#pragma omp task
+	    traiter_tuile_omp (GRAIN * i, GRAIN * j, GRAIN * (i +1), GRAIN * (j + 1) );
+	  }
+	}
+#pragma omp taskwait
+      
+#pragma omp single	
+	swap_images ();
+    }
+  }
+
+  return 0;
+}
+
+/* Routine permettant de mettre à jour le tableu 'would_change'.
+   Ce tableau indique si une tuile sera à traité (i.e. si elle
+   ou une de ses tuiles voisines a été modifié à l'étape précédente).
+   Pour aller plus vite, une double boucle for  est parallélisé */
+static
+void update_change_task(int *changes, int *would) {
+  int nbit = DIM / GRAIN;
+
+#pragma omp parallel
+  {
+#pragma omp for schedule(static) collapse(2)
+    for (int i = 0; i < nbit; ++i)
+      for(int j = 0; j < nbit; ++j) {
+#pragma omp task
+	{
+	  would[i * nbit + j] = 0;
+	  for (int row = i - 1; row < i + 1; ++row){
+	    for (int col = j - 1; col < j + 1; ++col)
+	      if (row >= 0 && row < nbit && col >= 0 && col < nbit) {
+		would[i * nbit + j] |= changes[row * nbit + col];
+	      }
+	  }
+	}
+      }
+#pragma omp taskwait
+  }
+  memset(changes, 0, sizeof(int) * nbit * nbit);
+}
+
+/* Version omp task optimisé */
+unsigned vie_compute_omptaskopti(unsigned nb_iter) {
+  int *changes = calloc(DIM * DIM / (GRAIN * GRAIN), sizeof(int));
+  int *would_change = malloc(DIM * DIM / (GRAIN * GRAIN) * sizeof(int));
+  int nbit = DIM / GRAIN;
+
+  memset(would_change, 1, sizeof(int) * nbit * nbit);
+  
+  for (unsigned it = 1; it <= nb_iter; it++) {
+#pragma omp parallel
+    {
+#pragma omp for schedule(static) collapse(2)
+	for (unsigned i = 0; i < nbit; ++i) {
+	  for (int j = 0 ; j < nbit; ++j) {
+#pragma omp task
+	    {
+	      if (would_change[i * nbit + j]) {
+		changes[i * nbit + j] |= traiter_tuile_omp (GRAIN * i, GRAIN * j, GRAIN * (i +1), GRAIN * (j + 1) );
+	      }
+	    }
+	  }
+	}
+#pragma omp taskwait
+      
+#pragma omp single
+	  swap_images ();
+    }
+    update_change(changes, would_change);
+  }
+
+  free(changes);
+  free(would_change);
+  
+  return 0;
+}
+
 //void vie_refresh_img() {
 
   // on peut creer notre propre tableau de bool pour faire le jeu et donc ici on fait cur_img(i,j) = tab[i][j] juste pour montrer que ca marche
