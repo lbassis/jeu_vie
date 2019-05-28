@@ -1,0 +1,164 @@
+---
+title: "gpu"
+author: "Lucas Assis"
+date: "27/05/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr, warn.conflicts = FALSE)
+library(ggplot2)
+library(ggthemes)
+
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+basicDf <- read.delim("basic.data", colClasses = character(), header = TRUE, sep = ";")
+clDf <- read.delim("opencl.data", colClasses = character(), header = TRUE, sep = ";")
+```
+
+
+## basic
+```{r cars}
+plot = basicDf %>%
+  filter(grain==16 & conf=='guns') %>%
+  group_by(version, size) %>%
+  summarize(Temps=mean(temps)) %>%
+   ggplot(aes(x = Taille,y = Temps(s), color = Version)) +
+      scale_fill_brewer(palette='Set4') +
+      geom_line(aes(x = size,y = Temps/1000, color=version)) +
+      geom_point(aes(x = size,y = Temps/1000, color=version)) +
+      scale_x_continuous(limits=c(512, 1024, 2048)) +
+      scale_x_log10() +
+      ggtitle("Temps en fonction de la taille (iterations = 500, grain = 16, conf = guns)")
+plot
+```
+
+```{r cars}
+plot = basicDf %>%
+  filter(grain==16 & conf=='random') %>%
+  group_by(version, size) %>%
+  summarize(Temps=mean(temps)) %>%
+   ggplot(aes(x = Taille,y = Temps(s), color = Version)) +
+      scale_fill_brewer(palette='Set4') +
+      geom_line(aes(x = size,y = Temps/1000, color=version)) +
+      geom_point(aes(x = size,y = Temps/1000, color=version)) +
+
+      scale_x_continuous(limits=c(512, 1024, 2048)) +
+      scale_x_log10() +
+      ggtitle("Temps en fonction de la taille (iterations = 500, grain = 16, conf = random)")
+plot
+```
+
+```{r cars}
+plot = basicDf %>%
+  filter(size==512 & conf=='guns') %>%
+  group_by(version, grain) %>%
+  summarize(Temps=mean(temps)) %>%
+   ggplot(aes(x = Grain,y = Temps(s), color = version)) +
+      scale_fill_brewer(palette='Set4') +
+      geom_line(aes(x = grain,y = Temps/1000, color=version)) +
+      geom_point(aes(x = grain,y = Temps/1000, color=version)) +
+      scale_x_discrete(limits=c(8, 16, 32, 64)) +
+      ggtitle("Temps en fonction du grain (iterations = 500, size = 512, conf = guns)")
+plot
+```
+
+```{r cars}
+plot = basicDf %>%
+  filter(size==512 & conf=='random') %>%
+  group_by(version, grain) %>%
+  summarize(Temps=mean(temps)) %>%
+   ggplot(aes(x = Grain,y = Temps(s), color = Version)) +
+      geom_line(aes(x = grain,y = Temps/1000, colour=version)) +
+      geom_point(aes(x = grain,y = Temps/1000, colour=version)) +
+      scale_x_discrete(limits=c(8, 16, 32, 64)) +
+      ggtitle("Temps en fonction du grain (iterations = 500, size = 512, conf = random)")
+plot
+```
+
+
+## opencl
+```{r cars}
+plot = clDf %>%
+  filter(grain==16 & conf=='guns') %>%
+  group_by(version, taille) %>%
+  summarize(Temps=mean(temps)) %>%
+   ggplot(aes(x = Taille,y = Temps(s), color = Version)) +
+      geom_line(aes(x = taille,y = Temps/1000, color=version)) +
+      geom_point(aes(x = taille,y = Temps/1000, color=version)) +
+      scale_x_continuous(limits=c(512, 1024, 2048, 4096)) +
+      scale_x_log10() +
+      ggtitle("Temps en fonction de la taille (iterations = 500, grain = 16, conf = guns)")
+plot
+```
+
+```{r cars}
+plot = clDf %>%
+  filter(grain==16 & conf=='random') %>%
+  group_by(version, taille) %>%
+  summarize(Temps=mean(temps)) %>%
+   ggplot(aes(x = Taille,y = Temps(s), color = Version)) +
+      scale_fill_brewer(palette='Set4') +
+      geom_line(aes(x = taille,y = Temps/1000, color=version)) +
+      geom_point(aes(x = taille,y = Temps/1000, color=version)) +
+      scale_x_continuous(limits=c(512, 1024, 2048)) +
+      scale_x_log10() +
+      ggtitle("Temps en fonction de la taille (iterations = 500, grain = 16, conf = random)")
+plot
+```
+
+```{r cars}
+plot = clDf %>%
+  filter(taille==2048 & conf=='guns') %>%
+  group_by(version, grain) %>%
+  summarize(Temps=mean(temps)) %>%
+   ggplot(aes(x = Grain,y = Temps(s), color = version)) +
+      scale_fill_brewer(palette='Set4') +
+      geom_line(aes(x = grain,y = Temps/1000, color=version)) +
+      geom_point(aes(x = grain,y = Temps/1000, color=version)) +
+      scale_x_discrete(limits=c(8, 16, 32, 64)) +
+      ggtitle("Temps en fonction du grain (iterations = 500, size = 2048, conf = guns)")
+plot
+```
+
+```{r cars}
+plot = clDf %>%
+  filter(taille==2048 & conf=='random') %>%
+  group_by(version, grain) %>%
+  summarize(Temps=mean(temps)) %>%
+   ggplot(aes(x = Grain,y = Temps(s), color = Version)) +
+      geom_line(aes(x = grain,y = Temps/1000, colour=version)) +
+      geom_point(aes(x = grain,y = Temps/1000, colour=version)) +
+      scale_x_discrete(limits=c(8, 16, 32, 64)) +
+      ggtitle("Temps en fonction du grain (iterations = 500, size = 2048, conf = random)")
+plot
+```
+
+```{r cars}
+cl2 = clDf[,c(1,2,4,5,3, 6, 7)]
+colnames(cl2)[colnames(cl2)=="taille"] <- "size"
+all <- rbind(cl2, basicDf)
+#cl2
+#basicDf
+
+plot = all %>%
+  filter(grain==16 & conf=='guns' & (version=='opt' | version=='seq')) %>%
+  group_by(version, size) %>%
+  summarize(Temps=mean(temps)) %>%
+   ggplot(aes(x = Taille,y = Temps(s), color = Version)) +
+      geom_line(aes(x = size,y = Temps/1000, colour=version)) +
+      geom_point(aes(x = size,y = Temps/1000, colour=version)) +
+      scale_x_discrete(limits=c(512, 1024, 2048, 4096)) +
+      ggtitle("Temps en fonction de la taille (iterations = 500, grain=16, conf = guns)")
+plot
+```
+
+```
